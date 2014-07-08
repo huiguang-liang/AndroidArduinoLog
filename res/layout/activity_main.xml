@@ -1,0 +1,59 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+ 
+ <TextView
+            android:id="@+id/textView1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Input file name and press start to get arduino log, default file name is arduinoLog.txt" />
+ 
+    <LinearLayout 
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+       
+
+    <EditText
+        android:id="@+id/command"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="24" >
+    </EditText>
+
+    <Button
+        android:id="@+id/sendButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="START" />
+
+    </LinearLayout>
+
+   <ScrollView 
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true" >
+
+<LinearLayout
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="10dp" >
+
+<EditText
+    android:id="@+id/logView"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:ems="20"
+    android:inputType="textMultiLine"
+    android:lineSpacingExtra="3dp"
+    android:textSize="20sp" >
+</EditText>
+</LinearLayout>
+</ScrollView>
+
+</LinearLayout>
+    
