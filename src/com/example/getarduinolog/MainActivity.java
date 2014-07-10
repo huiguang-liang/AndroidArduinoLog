@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -53,6 +54,8 @@ public class MainActivity extends Activity {
 	boolean savelog = false;
 	boolean isFileNameSet = false;
 	public static Date dateNTPTime;
+	
+	public static boolean doubleBackToExitPressedOnce = false;
 	
 	
 	
@@ -112,10 +115,30 @@ public class MainActivity extends Activity {
 		
 	}
 	
+	@Override
+	public void onBackPressed() {
+	    if (doubleBackToExitPressedOnce) {
+	        super.onBackPressed();
+	        return;
+	    }
+
+	    this.doubleBackToExitPressedOnce = true;
+	    Toast.makeText(this, "Please click BACK again to exit", Toast.LENGTH_SHORT).show();
+
+	    new Handler().postDelayed(new Runnable() {
+
+	        @Override
+	        public void run() {
+	            doubleBackToExitPressedOnce=false;                       
+	        }
+	    }, 2000);
+	} 
+	
 	class NTPTime extends AsyncTask<String , Void, Long> {
 		Date current;
 		public static final String TIME_SERVER = "time-a.nist.gov";
 		
+		@Override
 		protected void onPreExecute() {
 			dateNTPTime = null;
 		}
@@ -123,40 +146,54 @@ public class MainActivity extends Activity {
 		@Override
 		protected Long doInBackground(String... params) {
 			//NTP server list: http://tf.nist.gov/tf-cgi/servers.cgi
+			long returnTime = 0;
 			try {
 				NTPUDPClient timeClient = new NTPUDPClient();
 				InetAddress inetAddress;
 				inetAddress = InetAddress.getByName(TIME_SERVER);
 				TimeInfo timeInfo = timeClient.getTime(inetAddress);
 				//long returnTime = timeInfo.getReturnTime();   //local device time
-				long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();   //server time
+				returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();   //server time
+				Log.i("MAIN", "return time"+returnTime);
+				if(returnTime!=0) {
+					dateNTPTime = new Date(returnTime);	
+				}
 			//	current = new Date(returnTime);
-				dateNTPTime = new Date(returnTime);
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
+				Log.i("MAIN", "UNKNOWHOST return time"+returnTime);
+				dateNTPTime = null;
 				e.printStackTrace();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
+				Log.i("MAIN", "IOEXCEPTION return time"+returnTime);
+				dateNTPTime = null;
 				e.printStackTrace();
 			}
 			return null;
 		}
 		
-		
+		@Override
 		protected void onPostExecute(Long d) {
 //			Log.i("NTP", "ON POST EXCUTE");
 			localTime.setTextColor(Color.BLACK);
 			NTPTime.setTextColor(Color.BLACK);
 			
-			if( (dateNTPTime!=null) && (!dateNTPTime.toString().equals(""))) {
+			if(dateNTPTime==null) {
+				Log.i("MAIN", "NTP DATE TIME IS NULL");
+			}
+			
+			if( (dateNTPTime!=null)) {
 				NTPTime.setText("Current (NTP) Time: "+dateNTPTime.toString());
 				NTPTime.setTextColor(Color.BLUE);
-			} else {
+			} 
+			
+			if(dateNTPTime==null){	
 				localTime.setTextColor(Color.BLUE);
 				NTPTime.setText("Current (NTP) Time: Can not get time from server! use local time");
 			}
 			
-			localTime.setText("Local time (phone):"+new Date().toGMTString()); 
+			localTime.setText("Local time (phone):"+new Date().toString()); 
 	    }
 	}
 	
@@ -164,8 +201,12 @@ public class MainActivity extends Activity {
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
+			dateNTPTime = null;
+			
 			new NTPTime().execute();
-			localTime.setText("Local time (phone):"+new Date().toGMTString()); 
+			
+			localTime.setText("Local time (phone):"+new Date().toString());
+			
 			customHandler.postDelayed(this, 1000);
 		}
 		
@@ -241,7 +282,12 @@ public class MainActivity extends Activity {
 				if(sendButton.getText().toString().equals("START")) {
 					if(command.getText().toString().replaceAll("\\s+","").length()>0) {
 						fileName = command.getText().toString().replaceAll("\\s+","");
+					} else {
+						SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+						String currentDateandTime = sdf.format(new Date());
+						fileName = "arduinoLog"+currentDateandTime;
 					}
+					
 					baudRate=spBaudrate.getSelectedItem().toString();
 
 					Toast.makeText(MainActivity.this, "Baud rate:"+baudRate+" Data file"+fileName, Toast.LENGTH_SHORT).show();
