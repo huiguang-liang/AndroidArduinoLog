@@ -2,58 +2,95 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
- 
- <TextView
-            android:id="@+id/textView1"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/ntpTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="NTP Time:"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+    
+     <TextView
+        android:id="@+id/localTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Local time (phone):"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:id="@+id/BaudRate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Input file name and press start to get arduino log, default file name is arduinoLog.txt" />
- 
-    <LinearLayout 
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+            android:text="Baud Rate:"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
-       
-
-    <EditText
-        android:id="@+id/command"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ems="24" >
-    </EditText>
-
-    <Button
-        android:id="@+id/sendButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="START" />
-
+        <Spinner
+            android:id="@+id/spinnerBaudRate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="24"
+            android:entries="@array/baud_values"
+            android:prompt="@string/choose_baud_value"
+            />
     </LinearLayout>
 
-   <ScrollView 
-    android:layout_width="fill_parent"
-    android:layout_height="wrap_content"
-    android:fillViewport="true" >
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="File Name:"
+        android:textSize="20sp"
+        android:textStyle="bold" />
 
-<LinearLayout
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="10dp" >
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" >
 
-<EditText
-    android:id="@+id/logView"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:ems="20"
-    android:inputType="textMultiLine"
-    android:lineSpacingExtra="3dp"
-    android:textSize="20sp" >
-</EditText>
+        <EditText
+            android:id="@+id/command"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="24" >
+        </EditText>
+
+        <Button
+            android:id="@+id/sendButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="START" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true" >
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="10dp" >
+
+            <EditText
+                android:id="@+id/logView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ems="20"
+                android:inputType="textMultiLine"
+                android:lineSpacingExtra="3dp"
+                android:textSize="20sp" >
+            </EditText>
+        </LinearLayout>
+    </ScrollView>
+
 </LinearLayout>
-</ScrollView>
-
-</LinearLayout>
-    

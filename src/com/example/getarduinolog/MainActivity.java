@@ -7,18 +7,28 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.net.ntp.NTPUDPClient;
+import org.apache.commons.net.ntp.TimeInfo;
+
 import android.app.Activity;
+import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,59 +37,45 @@ public class MainActivity extends Activity {
 	TextView logView;
 	EditText command;
 	List<String> cmds;
+	
 	String fileName  = "arduinoLog";
+	String baudRate = "57600";
+	
+	EditText currentTime;
+	TextView NTPTime;
+	TextView localTime;
+	Spinner spBaudrate;
 	
 	boolean isThreadRunning = false;
+	
+	boolean isBaudRateSet = false;
+	
 	boolean savelog = false;
 	boolean isFileNameSet = false;
+	public static Date dateNTPTime;
 	
 	
 	
-	public void appendLog(String fileName, String text)
-	{       
-		File external = Environment.getExternalStorageDirectory();
-	    String sdcardPath = external.getPath();
-		File logFile = new File(sdcardPath+"/"+fileName+".txt");
-  	   if (!logFile.exists())
-	   {
-	      try
-	      {
-	         logFile.createNewFile();
-	      } 
-	      catch (IOException e)
-	      {
-	         // TODO Auto-generated catch block
-	    	  //threadMsg(e.getMessage());
-	         e.printStackTrace();
-	      }
-	   }
-	   try
-	   {
-	      //BufferedWriter for performance, true to set append to file flag
-	      BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true)); 
-	      buf.append(text);
-	      buf.newLine();
-	      buf.close();
-	   }
-	   catch (IOException e)
-	   {
-	      // TODO Auto-generated catch block
-	      e.printStackTrace();
-	   }
-	}
+	private Handler customHandler = new Handler();
 	
 	private Handler handler = new Handler() {
 		public void handleMessage(Message msg) {
 			
 			String aResponse = msg.getData().getString("message");
 			if ((null != aResponse)) {
-				// Log.i("MAIN", aResponse);
 				
-				long unixTime = System.currentTimeMillis() / 1000L;
+				//long unixTime = System.currentTimeMillis() / 1000L;
+				
+				long unixTime;
+				if(dateNTPTime != null) {
+					unixTime = dateNTPTime.getTime() / 1000;
+				} else {
+					unixTime = new Date().getTime() / 1000;
+				}
 				
 				if(savelog) {
 					logView.append(unixTime+" "+aResponse + "\n");
-					appendLog(fileName, unixTime+" "+aResponse + "\n");
+					CustomLogger.appendLog(fileName, unixTime+" "+aResponse + "\n");
 				}
 			}
 		}
@@ -96,31 +92,116 @@ public class MainActivity extends Activity {
 		logView = (TextView) findViewById(R.id.logView);
 		logView.setEnabled(false);
 		command = (EditText) findViewById(R.id.command);
+		NTPTime = (TextView) findViewById(R.id.ntpTime);
+		localTime = (TextView) findViewById(R.id.localTime);
+		spBaudrate = (Spinner) findViewById(R.id.spinnerBaudRate);
 		
 		cmds = new ArrayList<String>();
-		cmds.add("cat /dev/ttyACM0");
 		
-		appendLog(fileName, "New Experiment"+new Date().getTime());
+		
+		cmds.add("stty -F /dev/ttyACM0 "+baudRate+";" +"cat /dev/ttyACM0");
+		
+		CustomLogger.appendLog(fileName, "\nNew Experiment\n");
+		
+		customHandler.postDelayed(updateTimerThread, 0);
+		Spinner sp = (Spinner)findViewById(R.id.spinnerBaudRate); 
+		sp.setSelection(10);
+		/*sp.setOnItemSelectedListener(new OnItemSelectedListener() {
+			
+		});*/
+		
 	}
+	
+	class NTPTime extends AsyncTask<String , Void, Long> {
+		Date current;
+		public static final String TIME_SERVER = "time-a.nist.gov";
+		
+		protected void onPreExecute() {
+			dateNTPTime = null;
+		}
+		
+		@Override
+		protected Long doInBackground(String... params) {
+			//NTP server list: http://tf.nist.gov/tf-cgi/servers.cgi
+			try {
+				NTPUDPClient timeClient = new NTPUDPClient();
+				InetAddress inetAddress;
+				inetAddress = InetAddress.getByName(TIME_SERVER);
+				TimeInfo timeInfo = timeClient.getTime(inetAddress);
+				//long returnTime = timeInfo.getReturnTime();   //local device time
+				long returnTime = timeInfo.getMessage().getTransmitTimeStamp().getTime();   //server time
+			//	current = new Date(returnTime);
+				dateNTPTime = new Date(returnTime);
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return null;
+		}
+		
+		
+		protected void onPostExecute(Long d) {
+//			Log.i("NTP", "ON POST EXCUTE");
+			localTime.setTextColor(Color.BLACK);
+			NTPTime.setTextColor(Color.BLACK);
+			
+			if( (dateNTPTime!=null) && (!dateNTPTime.toString().equals(""))) {
+				NTPTime.setText("Current (NTP) Time: "+dateNTPTime.toString());
+				NTPTime.setTextColor(Color.BLUE);
+			} else {
+				localTime.setTextColor(Color.BLUE);
+				NTPTime.setText("Current (NTP) Time: Can not get time from server! use local time");
+			}
+			
+			localTime.setText("Local time (phone):"+new Date().toGMTString()); 
+	    }
+	}
+	
+	private Runnable updateTimerThread = new Runnable() {
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			new NTPTime().execute();
+			localTime.setText("Local time (phone):"+new Date().toGMTString()); 
+			customHandler.postDelayed(this, 1000);
+		}
+		
+	};
 	
 	Thread background = new Thread(new Runnable() {
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
+			
 			try {
 				Process process = Runtime.getRuntime().exec("su");
 				BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream()));
 				
 				DataOutputStream os = new DataOutputStream(process.getOutputStream());
+				String message = null;
+				
+				/*if(isBaudRateSet==false) {
+					 os.writeBytes("stty -F /dev/ttyACM0"+baudRate+";\n");
+					 isBaudRateSet = true;
+					 if((message = in.readLine()) != null){
+						 threadMsg(message);
+					 }
+				}*/
 				
 				//run command cat /dev/ttyACM0 to get log
-			    for (String tmpCmd : cmds) {
+			    /*for (String tmpCmd : cmds) {
 			            os.writeBytes(tmpCmd+"\n");
-			    }
+			    }*/
+				
+				os.writeBytes("stty -F /dev/ttyACM0 "+baudRate+";" +"cat /dev/ttyACM0");
+			    
 			    os.flush();
 			    os.close();
 			    
-				String message = null;
+				
 				while ((message = in.readLine()) != null) {
 					//Display on device
 					threadMsg(message);
@@ -158,20 +239,18 @@ public class MainActivity extends Activity {
 			case R.id.sendButton:
 				
 				if(sendButton.getText().toString().equals("START")) {
-					
-					if(isFileNameSet == false) {
-						if(command.getText().toString().replaceAll("\\s+","").length()>0) {
-							fileName = command.getText().toString();
-							isFileNameSet = true;
-						}
+					if(command.getText().toString().replaceAll("\\s+","").length()>0) {
+						fileName = command.getText().toString().replaceAll("\\s+","");
 					}
-					
-					Toast.makeText(MainActivity.this, "Data will be save to file " + fileName +  "in sdcard", Toast.LENGTH_SHORT).show();
+					baudRate=spBaudrate.getSelectedItem().toString();
+
+					Toast.makeText(MainActivity.this, "Baud rate:"+baudRate+" Data file"+fileName, Toast.LENGTH_SHORT).show();
 					
 					if(isThreadRunning == false) {
 						background.start();
 						isThreadRunning = true;
 					}
+					
 					savelog  = true;
 					sendButton.setText("STOP");
 				} else  if(sendButton.getText().toString().equals("STOP")) {
